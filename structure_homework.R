@@ -209,7 +209,9 @@ rs_joined %>% count(Decades)
 rs_joined %>%
   mutate(Decades = fct_lump(Decades, n=3, other_level= "Other"))
 
+##I was a bit unsure on how to proceed on the next steps but tried this:
 
+fct_count(rs_joined$Decades, sort = TRUE, prop= TRUE)
 
 ### Question 8 ---------- 
 
@@ -250,6 +252,25 @@ top20 <- top20 %>%
 
 #ANSWER
 
+top20 <- top20 %>% left_join(rs_joined, by = c("Artist", "Song"))
+top20 <- top20 %>% mutate(month = month(Release, label = TRUE))
+glimpse(top20)
+
+
+#was a bit unsure on how to tackle the second part 
+
+top20 <- top20 %>% mutate(
+  season = case_when(month %in% c("Dec", "Jan", "Feb")~ "winter",
+                                  month %in% c("Mar", "Apr", "May")~ "Spring",
+                   month %in% c("Jun", "Jul", "Aug")~ "Summer",
+                   month %in% c("Sept", "Oct", "Nov")~ "Fall"))
+
+top20 %>% count(season)
+ #In Fall there were 5
+# In Spring there were 5
+#In Summer there were 7
+#In Winter there were 2
+#There is one NA
 
 
 ### Question 11 ---------
@@ -261,5 +282,13 @@ top20 <- top20 %>%
 
 #ANSWER
 
+top20 <- top20 %>% mutate(
+  Quality = if_else(str_detect(Key, 'm'),"Minor","Major"))
 
+top20 %>% filter(Quality == "Minor") %>%
+  slice_min(Rank_New, n=1
+)
 
+#When Doves Cry by Prince
+
+#Not sure if this is correct :()
