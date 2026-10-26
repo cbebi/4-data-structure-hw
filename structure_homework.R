@@ -215,12 +215,14 @@ rs_joined %>%
 
 # Read the file "top_20.csv" into a tibble called top20
 
-# Release_Date isn't read in correctly as a date
+top20 <- read_csv("top_20.csv")
+glimpse(top20)
 
+# Release_Date isn't read in correctly as a date
 # Use parse_date_time to fix it
 
 #ANSWER
-
+top20 <- top20 %>% mutate(Release = parse_date(Release, format = c( "%d-%b-%Y")))
 
 ### Question 9 --------
 
