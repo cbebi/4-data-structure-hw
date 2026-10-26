@@ -2,6 +2,7 @@
 #For full credit, provide answers for at least 8/11 questions
 
 #List names of students collaborating with: 
+#Row in the front: Aylin, Maddy, and Megan 
 
 ### SETUP: RUN THIS BEFORE STARTING ----------
 
@@ -31,25 +32,54 @@ load("rs_data.RData")
 
 # Use "full_join" to merge the old and new datasets, rs_new and rs_old,
 # by Artist AND Song. Save the results to a dataset called rs_joined_orig
+
 # If the merged worked, each song-artist combination that appears in both
 # datasets should now be in a single row with the old/new ranks
+
+#Yes, it looks like it worked!
+
+
 # Use the nrow() function to see how many rows of data there are
 # In the viewer, take a look at the merge...what kinds of problems are there?
 # Why did some of the artist-song fail to match up?
 
 #ANSWER
-
+rs_joined_orig <- full_join(rs_new,rs_old, by= c("Artist", "Song"))
+nrow(rs_joined_orig)
+#Looks like there are 860 rows 
+glimpse(rs_joined_orig)
+#Looks like there are a lot of NA's for the song year and song rank
+#Since the new dataset is ranked 500-1 but the old is 1-500, this leads to a mismatch
+#We also cannot tell which songs are new and which ones are old
 
 
 ### Question 2 ---------- 
 
 # To clean up the datasets, it would be more efficient to put them into a single data set
 # Add a new variable to each dataset called "Source" with value "New" for rs_new and
-# "Old" for rs_old. Then use bind_rows to join the two datasets into a single one called rs_all
+# "Old" for rs_old. 
+#Then use bind_rows to join the two datasets into a single one called rs_all
 # You will run into a problem because the old dataset has rank/year as characters instead of integers
 # Make Rank and Year into integer variables for rs_old before binding them into rs_all
 
 #ANSWER
+rs_new <- rs_new %>% mutate(Source = "New")
+rs_old <- rs_old %>% mutate(Source = "Old")
+
+rs_all <- bind_rows(rs_new, rs_old)
+#Yes, the error pops up at this point
+
+#making Rank and Year into intigers 
+
+rs_old <- rs_old %>%
+  mutate(Rank = as.integer(Rank),
+         Year= as.integer(Year))
+
+
+#Run this code again
+rs_all <- bind_rows(rs_new, rs_old)
+
+#now, it works!
 
 
 ### Question 3 ----------
@@ -64,23 +94,62 @@ load("rs_data.RData")
 #ANSWER
 
 
+
+?str_to_lower
+?str_trim
+
+
+rs_all <- rs_all %>%
+  mutate(across(c(Song, Artist), str_remove_all, "THE"),
+         across(c(Song, Artist), str_replace_all, "&", "and"),
+         across(c(Song, Artist), str_remove_all, "[:punct:]"),
+         across(c(Song, Artist), str_to_lower),
+         across(c(Song, Artist), str_trim)) 
+
 ### Question 4 ----------
 
 # Now that the data have been cleaned, split rs_all into two datasets, one for old and one for new
+
 # Each dataset should have 500 observations and 5 variables
+
 # Use full_join again to merge the old and new datasets by artist and song, and save it to rs_joined
-# Read about the "suffix" argument in full_join, and use it to append _Old and _New to year and rank
+
+# Read about the "suffix" argument in full_join, and use it to append _Old and _New year and rank
 # rather than the default (x and y)
+
 # Did the string cleaning improve matches? If so, there should be fewer rows of data (fewer duplicates)
+
 # in the new rs_joined compared to the original. Use nrow to check (there should be 799 rows)
 
 #ANSWER
+
+rs_all_split <- split(rs_all, rs_all$Source)
+
+old_rs <- rs_all_split$Old
+new_rs <- rs_all_split$New
+
+rs_joined <- full_join(old_rs, new_rs, by= c("Artist", "Song"))
+
+#Now looks like we have 860 observations and 8 variables
+
+?full_join
+#Indicates that there should be a character vector length of 2
+
+rs_joined <- full_join(old_rs, new_rs,
+                       by = c("Artist", "Song"),
+                       suffix = c("_Old", "_New"))
+
+
+nrow(rs_joined)
+
+#Got a bit hung up here since I still have 820 rows
 
 
 ### Question 5 ----------
 
 # Let's clean up rs_joined with the following steps:
   # remove the variable "Source"
+
   # remove any rows where Rank_New or Rank_Old is NA (so we have only the songs that appeared in both lists)
   # calculate a new variable called "Rank_Change" that subtracts new rank from old rank
   # sort by rank change
@@ -89,34 +158,65 @@ load("rs_data.RData")
 
 #ANSWER
 
+rs_joined <- rs_joined %>% select(-c("Source_New", "Source_Old")) %>%
+  drop_na(Rank_Old, Rank_New) %>%
+  mutate(Rank_Change = Rank_Old- Rank_New) %>%
+  arrange(Rank_Change)
+
+glimpse(rs_joined)
+#We can see that there is a new variable called Rank_Change in the dataset 
 
 ### Question 6 ----------
 
 # Add a new variable to rs_joined that takes the year and turns it into a decade with "s" at the end
-# The new variable should be a factor
+
+rs_joined <- rs_joined %>%
+  mutate(Decades = floor(Year_Old/10)*10,
+         Decades = str_c(Decades, "s"),
+         Decades = as.factor(Decades))
+
+#Check to see if factor  
+is.factor(rs_joined$Decades)
+
+#Now, the output is "TRUE"
+
 # 1971 should be 1970s, 1985 should be 1980s, etc.
+
 # Group by decade and summarize the mean rank_change for songs released in each decade (you don't have to save it)
+
+rs_joined %>% group_by(Decades) %>%
+  summarise(mean(Rank_Change))
+
 # Which decade improved the most?
 
-#ANSWER
 
+#ANSWER
+#It looks like the 1980's improved the most with 56
 
 
 ### Question 7 ----------
 
 # Use fct_count to see the number of songs within each decade
+
 # Then use fct_lump to limit decade to 3 levels (plus other), and
+
 # Do fct_count on the lumped factor with the prop argument to see the 
 # proportion of songs in each of the top three decades (vs. all the rest)
 
 #ANSWER
+rs_joined %>% count(Decades)
+
+rs_joined %>%
+  mutate(Decades = fct_lump(Decades, n=3, other_level= "Other"))
 
 
 
 ### Question 8 ---------- 
 
 # Read the file "top_20.csv" into a tibble called top20
+
 # Release_Date isn't read in correctly as a date
+
 # Use parse_date_time to fix it
 
 #ANSWER
@@ -125,7 +225,9 @@ load("rs_data.RData")
 ### Question 9 --------
 
 # top20's Style and Value are mixing two different variables into one column
+
 # use pivot_wider to fix the issue so that bpm and key are columns
+
 # overwrite top20 with the pivoted data (there should now be 20 rows!)
 
 #ANSWER
