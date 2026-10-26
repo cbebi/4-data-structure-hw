@@ -234,6 +234,8 @@ top20 <- top20 %>% mutate(Release = parse_date(Release, format = c( "%d-%b-%Y"))
 
 #ANSWER
 
+top20 <- top20 %>%
+  pivot_wider(names_from = "Style",values_from = "Value")
 
 
 ### Question 10 ---------
